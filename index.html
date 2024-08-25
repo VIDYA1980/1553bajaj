@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Input Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .form-group button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+        }
+        .response {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JSON Input Form</h1>
+        <div class="form-group">
+            <label for="jsonInput">Enter JSON Data:</label>
+            <input type="text" id="jsonInput" placeholder='{"data": ["M", "1", "334", "4", "B", "Z", "a"]}' />
+            <button onclick="handleSubmit()">Submit</button>
+            <div id="error" class="error"></div>
+        </div>
+        <div id="dropdownContainer" style="display: none;">
+            <label for="filters">Select filters:</label>
+            <select id="filters" multiple>
+                <option value="alphabets">Alphabets</option>
+                <option value="numbers">Numbers</option>
+                <option value="highestLowercase">Highest lowercase alphabet</option>
+            </select>
+        </div>
+        <div id="response" class="response"></div>
+    </div>
+
+    <script>
+        async function handleSubmit() {
+            const jsonInput = document.getElementById('jsonInput').value;
+            const errorDiv = document.getElementById('error');
+            const responseDiv = document.getElementById('response');
+            const dropdownContainer = document.getElementById('dropdownContainer');
+            const filters = document.getElementById('filters');
+
+            // Clear previous errors and responses
+            errorDiv.textContent = '';
+            responseDiv.textContent = '';
+
+            try {
+                // Validate JSON
+                const parsedData = JSON.parse(jsonInput);
+                if (!parsedData || !Array.isArray(parsedData.data)) {
+                    throw new Error('Input must be a JSON object with a "data" array');
+                }
+
+                // Convert the data to a query string
+                const queryString = new URLSearchParams({ data: JSON.stringify(parsedData.data) }).toString();
+                const url = `https://bfhl-back-end.onrender.com/bfhl?${queryString}`;
+
+                // Make GET request
+                const res = await fetch(url);
+
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+
+                const result = await res.json();
+
+                if (result.is_success) {
+                    // Show dropdown and response
+                    dropdownContainer.style.display = 'block';
+
+                    // Handle dropdown change
+                    filters.addEventListener('change', () => {
+                        const selectedOptions = Array.from(filters.selectedOptions).map(option => option.value);
+                        let filteredResponse = {};
+
+                        if (selectedOptions.includes('alphabets')) {
+                            filteredResponse.alphabets = result.alphabets;
+                        }
+                        if (selectedOptions.includes('numbers')) {
+                            filteredResponse.numbers = result.numbers;
+                        }
+                        if (selectedOptions.includes('highestLowercase')) {
+                            filteredResponse.highest_lowercase_alphabet = result.highest_lowercase_alphabet;
+                        }
+
+                        responseDiv.textContent = JSON.stringify(filteredResponse, null, 2);
+                    });
+
+                } else {
+                    throw new Error(result.message || 'Unknown error');
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);
+                errorDiv.textContent = err.message;
+            }
+        }
+    </script>
+</body>
+</html>

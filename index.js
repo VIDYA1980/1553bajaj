@@ -1,62 +1,60 @@
+const functions = require('firebase-functions');
 const express = require('express');
-const bodyParser = require('body-parser');
-
 const app = express();
-const port = 3000;
+app.use(express.json());
 
-app.use(bodyParser.json());
+// Helper function to process the input data
+const processData = (data) => {
+  const numbers = [];
+  const alphabets = [];
+  let highestLowercaseAlphabet = null;
 
-app.post('/api/data', (req, res) => {
-    const { data } = req.body;
-    
-    // Check if the input data is provided
-    if (!Array.isArray(data)) {
-        return res.status(400).json({
-            is_success: false,
-            message: "Invalid input data format"
-        });
-    }
-
-    let numbers = [];
-    let alphabets = [];
-    let highestLowercaseAlphabet = null;
-
-    // Process the data
-    data.forEach(item => {
-        if (isNaN(item)) {
-            // It's an alphabet
-            if (/^[a-z]$/.test(item)) {
-                alphabets.push(item);
-                if (highestLowercaseAlphabet === null || item > highestLowercaseAlphabet) {
-                    highestLowercaseAlphabet = item;
-                }
-            } else if (/^[A-Z]$/.test(item)) {
-                alphabets.push(item);
-            }
-        } else {
-            // It's a number
-            numbers.push(item);
+  data.forEach(item => {
+    if (!isNaN(item)) {
+      numbers.push(item);
+    } else if (/[a-zA-Z]/.test(item)) {
+      alphabets.push(item);
+      if (item === item.toLowerCase()) {
+        if (!highestLowercaseAlphabet || item > highestLowercaseAlphabet) {
+          highestLowercaseAlphabet = item;
         }
-    });
+      }
+    }
+  });
 
-    // Construct response
-    res.json({
-        is_success: true,
-        user_id: "vidya06062004",
-        email: "vidyaa265@gmail.com",
-        roll_number: "21BAI1553",
-        numbers: numbers,
-        alphabets: alphabets,
-        highest_lowercase_alphabet: highestLowercaseAlphabet ? [highestLowercaseAlphabet] : []
+  return {
+    numbers,
+    alphabets,
+    highest_lowercase_alphabet: highestLowercaseAlphabet ? [highestLowercaseAlphabet] : []
+  };
+};
+
+// POST endpoint to process input data
+app.post('/api/data', (req, res) => {
+  const { data } = req.body;
+  if (!Array.isArray(data)) {
+    return res.status(400).json({
+      is_success: false,
+      error: "Invalid input format"
     });
+  }
+
+  const processedData = processData(data);
+  res.status(200).json({
+    is_success: true,
+    user_id: "vidya06062004",
+    email: "vidyaa265@gmail.com",
+    roll_number: "21BAI1553",
+    ...processedData
+  });
 });
 
+// GET endpoint to return an operation code
 app.get('/api/data', (req, res) => {
-    res.json({
-        operation_code: "OP123456"
-    });
+  res.status(200).json({
+    operation_code: "OP12345"
+  });
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+// Export the API as a Firebase Function
+exports.api = functions.https.onRequest(app);
