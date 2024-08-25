@@ -1,61 +1,76 @@
-// Importing required modules
 const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
 const app = express();
-const PORT = 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware to parse JSON data
-app.use(express.json());
+// Configure CORS
+app.use(cors({
+    origin: 'https://one553bajaj-4.onrender.com', // Your client-side domain
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Function to extract numbers and alphabets from the string
-const extractData = (inputString) => {
-    const numbers = inputString.match(/\d+/g) || [];
-    const alphabets = inputString.match(/[a-zA-Z]/g) || [];
-    const lowercaseAlphabets = inputString.match(/[a-z]/g) || [];
-    
-    // Find the highest lowercase alphabet
-    const highestLowercaseAlphabet = lowercaseAlphabets.length > 0
-        ? lowercaseAlphabets.sort().reverse()[0]
-        : null;
+app.use(bodyParser.json());
 
-    return {
-        numbers,
-        alphabets,
-        highestLowercaseAlphabet
-    };
-};
+app.get('/', (req, res) => {
+    res.send('Welcome to the API! Use /api/data for POST and GET requests.');
+});
 
-// POST endpoint
 app.post('/api/data', (req, res) => {
-    const { userId, collegeEmail, collegeRollNumber, inputString } = req.body;
-
-    if (!userId || !collegeEmail || !collegeRollNumber || !inputString) {
+    const { data } = req.body;
+    
+    // Check if the input data is provided
+    if (!Array.isArray(data)) {
         return res.status(400).json({
-            status: 'error',
-            message: 'Missing required fields'
+            is_success: false,
+            message: "Invalid input data format"
         });
     }
 
-    const { numbers, alphabets, highestLowercaseAlphabet } = extractData(inputString);
+    let numbers = [];
+    let alphabets = [];
+    let highestLowercaseAlphabet = null;
 
-    return res.status(200).json({
-        status: 'success',
-        userId,
-        collegeEmail,
-        collegeRollNumber,
-        numbers,
-        alphabets,
-        highestLowercaseAlphabet: highestLowercaseAlphabet || 'No lowercase alphabet found'
+    // Process the data
+    data.forEach(item => {
+        if (typeof item === 'string') {
+            if (isNaN(item)) {
+                // It's an alphabet
+                if (/^[a-z]$/.test(item)) {
+                    alphabets.push(item);
+                    if (highestLowercaseAlphabet === null || item > highestLowercaseAlphabet) {
+                        highestLowercaseAlphabet = item;
+                    }
+                } else if (/^[A-Z]$/.test(item)) {
+                    alphabets.push(item);
+                }
+            } else {
+                // It's a number
+                numbers.push(item);
+            }
+        }
+    });
+
+    // Construct response
+    res.json({
+        is_success: true,
+        user_id: "vidya06062004",
+        email: "vidyaa265@gmail.com",
+        roll_number: "21BAI1553",
+        numbers: numbers,
+        alphabets: alphabets,
+        highest_lowercase_alphabet: highestLowercaseAlphabet ? [highestLowercaseAlphabet] : []
     });
 });
 
-// GET endpoint
 app.get('/api/data', (req, res) => {
-    res.status(200).json({
-        operation_code: 'OP123456'
+    res.json({
+        operation_code: "OP123456"
     });
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
 });
