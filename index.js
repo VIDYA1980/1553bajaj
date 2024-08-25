@@ -1,16 +1,50 @@
 const express = require('express');
+const cors = require('cors');  // Import cors for handling CORS issues
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-// Middleware to parse JSON bodies
-app.use(express.json());
+// Middleware
+app.use(cors());  // Enable CORS
+app.use(express.json());  // Parse JSON bodies
 
-// Constants
-const userID = "vidya06062004";
-const email = "vidyaa265@gmail.com";
-const rollNumber = "21BAI1553";
+// Handle POST requests to /api/data
+app.post('/api/data', (req, res) => {
+    try {
+        const data = req.body;
 
-// Helper function to categorize and process input data
+        // Validate input
+        if (!Array.isArray(data)) {
+            return res.status(400).json({ error: 'Invalid input: Data should be an array' });
+        }
+
+        // Process data
+        const processedData = processData(data);
+
+        // Send response
+        res.json({
+            status: 'success',
+            user_id: 'vidya06062004',
+            email: 'vidyaa265@gmail.com',
+            roll_number: '21BAI1553',
+            ...processedData
+        });
+    } catch (error) {
+        console.error('Error processing request:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Handle GET requests to /api/data
+app.get('/api/data', (req, res) => {
+    res.json({ operation_code: '1553' });
+});
+
+// Optionally, handle root URL requests
+app.get('/', (req, res) => {
+    res.send('Welcome to the API');
+});
+
+// Function to process data
 const processData = (data) => {
     const numbers = [];
     const alphabets = [];
@@ -33,32 +67,6 @@ const processData = (data) => {
         highestLowercaseAlphabet: highestLowercaseAlphabet ? [highestLowercaseAlphabet] : []
     };
 };
-
-// POST endpoint
-app.post('/api/data', (req, res) => {
-    const data = req.body;
-    const processedData = processData(data);
-
-    res.json({
-        status: 'success',
-        user_id: userID,
-        email,
-        roll_number: rollNumber,
-        ...processedData
-    });
-});
-
-// GET endpoint
-app.get('/api/data', (req, res) => {
-    res.json({
-        operation_code: 'OP1234'
-    });
-});
-
-// Root route (Optional)
-app.get('/', (req, res) => {
-    res.send('Welcome to the API. Use /api/data for endpoints.');
-});
 
 // Start the server
 app.listen(port, () => {

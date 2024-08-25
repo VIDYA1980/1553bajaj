@@ -1,112 +1,86 @@
 import React, { useState } from 'react';
-import './App.css';
+import axios from 'axios';
 
-function App() {
-  const [jsonInput, setJsonInput] = useState('{"data": ["M", "1", "334", "4", "B", "Z", "a"]}');
-  const [response, setResponse] = useState(null);
-  const [selectedFilters, setSelectedFilters] = useState([]);
-  const [error, setError] = useState('');
+const App = () => {
+    const [jsonInput, setJsonInput] = useState('');
+    const [error, setError] = useState('');
+    const [response, setResponse] = useState(null);
+    const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleSubmit = async () => {
-    try {
-      // Validate JSON input
-      const parsedData = JSON.parse(jsonInput);
-      
-      // Check if the input data is correctly formatted
-      if (!parsedData || !Array.isArray(parsedData.data)) {
-        throw new Error('Input must be an object with a "data" array');
-      }
+    // Validate JSON
+    const validateJson = (input) => {
+        try {
+            JSON.parse(input);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
 
-      // Post JSON data to API
-      const res = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsedData),
-      });
+    // Handle form submission
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-      const result = await res.json();
-      
-      if (result.is_success) {
-        setResponse(result);
+        if (!validateJson(jsonInput)) {
+            setError('Invalid JSON format');
+            return;
+        }
+
         setError('');
-      } else {
-        throw new Error(result.message || 'Unknown error');
-      }
-    } catch (err) {
-      setError(err.message);
-      setResponse(null);
-    }
-  };
+        setShowDropdown(true);
 
-  const handleFilterChange = (event) => {
-    const { value, checked } = event.target;
-    setSelectedFilters(prev =>
-      checked ? [...prev, value] : prev.filter(item => item !== value)
-    );
-  };
+        try {
+            const res = await axios.post('https://one553bajaj-6.onrender.com/api/data', JSON.parse(jsonInput));
+            setResponse(res.data);
+        } catch (error) {
+            setError('Error connecting to API');
+        }
+    };
 
-  const renderFilteredResponse = () => {
-    if (!response) return null;
-
-    const { numbers, alphabets, highest_lowercase_alphabet } = response;
-    const filteredData = {
-      numbers: selectedFilters.includes('Numbers') ? numbers : [],
-      alphabets: selectedFilters.includes('Alphabets') ? alphabets : [],
-      highestLowercaseAlphabet: selectedFilters.includes('Highest lowercase alphabet') ? highest_lowercase_alphabet : []
+    // Render response
+    const renderResponse = () => {
+        if (response) {
+            return (
+                <div>
+                    <h3>Response:</h3>
+                    <pre>{JSON.stringify(response, null, 2)}</pre>
+                </div>
+            );
+        }
+        return null;
     };
 
     return (
-      <div>
-        <h3>Filtered Response</h3>
-        <p><strong>Numbers:</strong> {filteredData.numbers.join(', ')}</p>
-        <p><strong>Alphabets:</strong> {filteredData.alphabets.join(', ')}</p>
-        <p><strong>Highest Lowercase Alphabet:</strong> {filteredData.highestLowercaseAlphabet.join(', ')}</p>
-      </div>
-    );
-  };
-
-  return (
-    <div className="container">
-      <h1>JSON Input to API</h1>
-      <textarea
-        rows="6"
-        value={jsonInput}
-        onChange={(e) => setJsonInput(e.target.value)}
-        placeholder='Enter JSON data here, e.g., {"data": ["M", "1", "334", "4", "B", "Z", "a"]}'
-      />
-      <button onClick={handleSubmit}>Submit</button>
-
-      {error && <div className="error">{error}</div>}
-      
-      {response && (
-        <div className="filters">
-          <label>
-            <input
-              type="checkbox"
-              value="Numbers"
-              onChange={handleFilterChange}
-            /> Numbers
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              value="Alphabets"
-              onChange={handleFilterChange}
-            /> Alphabets
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              value="Highest lowercase alphabet"
-              onChange={handleFilterChange}
-            /> Highest lowercase alphabet
-          </label>
+        <div className="App">
+            <h1>JSON API Interface</h1>
+            <form onSubmit={handleSubmit}>
+                <div>
+                    <label htmlFor="jsonInput">JSON Input:</label>
+                    <textarea
+                        id="jsonInput"
+                        value={jsonInput}
+                        onChange={(e) => setJsonInput(e.target.value)}
+                        rows="10"
+                        cols="50"
+                        placeholder='Enter valid JSON here'
+                    />
+                </div>
+                <button type="submit">Submit</button>
+            </form>
+            {error && <p style={{ color: 'red' }}>{error}</p>}
+            {renderResponse()}
+            {showDropdown && (
+                <div>
+                    <label htmlFor="responseOptions">Select an option:</label>
+                    <select id="responseOptions">
+                        <option value="alphabets">Alphabets</option>
+                        <option value="numbers">Numbers</option>
+                        <option value="highestLowercase">Highest lowercase alphabet</option>
+                    </select>
+                </div>
+            )}
         </div>
-      )}
-
-      {renderFilteredResponse()}
-    </div>
-  );
-}
+    );
+};
 
 export default App;
